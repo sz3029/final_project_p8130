@@ -9,251 +9,53 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
+library(corrplot)
+library(GGally)
 library(ggplot2)
 ```
+
+```{r}
+cdi <- read_csv("cdi.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(state = as.factor(state))
+
+var <- 
+  cdi[3:17] %>% 
+  select(-crimes)
+
+anyNA(var)
+```
+No NA in the dataset.
 
 ## Pairwise Comparison
 
 ```{r}
-cdi <- read_csv("cdi.csv") %>% 
-  janitor::clean_names() 
-
-pairs(cdi[4:17], pch = 20)
+pairs(var, pch = 20)
+ggcorr(data = var, label = TRUE, label_size = 2, hjust = 0.8)
 ```
 
-### Land Area v.s. Total Population
+From the correlation plot, we can see there are terms with high correlation:
+Number of active physicians & Number of hospital beds;
+Number of hospital beds & Total personal income;
+Number of active physicians & Total personal income;
+Total population & Number of active physicians;
+Total population & Number of hospital beds;
+Total population & Total personal Income
 
-### Land Area v.s. Percent Population aged 18-34
+## Interaction Terms
 
-### Land Area v.s. 
-
-### Percent high school graduates v.s. Total personal income
-
+Include interaction terms of highly correlated variables into the dataset.
 ```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(hsgrad, totalinc)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Percent high school graduates", y="Total personal income")
-
-# Simple linear regression 
-hs_to = lm(totalinc ~ hsgrad, data = cdi)
-summary(hs_to)
-```
-There is NO linear relationship between total personal income and percent high school graduates.
-
-### Poverty v.s. Percent high school graduates
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(poverty, hsgrad)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Percent below poverty level", y="Percent high school graduates")
-
-# Simple linear regression 
-po_hs = lm(hsgrad ~ poverty, data = cdi)
-summary(po_hs)
-```
-There is a significant linear decreasing between percent below poverty level and percent high school graduates.
-
-### Poverty v.s. Total personal income
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(poverty, totalinc)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Percent below poverty level", y="Total personal income")
-
-# Simple linear regression 
-po_to = lm(totalinc ~ poverty, data = cdi)
-summary(po_to)
-```
-There is NO linear relationship between total personal income and percent below poverty level.
-
-**With other variables**
-
-### Percent unemployment v.s. Percent high school graduates
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(unemp, hsgrad)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Percent unemployment", y="Percent high school graduates")
-
-# Simple linear regression 
-hs_un = lm(hsgrad ~ unemp, data = cdi)
-summary(hs_un)
-```
-There is a significant linear decreasing between percent unemployment and percent high school graduates.
-
-### Per capita income v.s. Percent high school graduates
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(pcincome, hsgrad)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Per capita income", y="Percent high school graduates")
-
-# Simple linear regression 
-hs_pc = lm(hsgrad ~ pcincome, data = cdi)
-summary(hs_pc)
-```
-There is a significant linear increasing between per capita income and percent high school graduates.
-
-### Percent bachelor’s degrees v.s. Percent high school graduates
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(hsgrad, bagrad)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Percent high school graduates", y="Percent bachelor’s degrees")
-
-# Simple linear regression 
-ba_hs = lm(bagrad ~ hsgrad, data = cdi)
-summary(ba_hs)
-```
-There is a significant linear increasing between percent bachelor’s degrees and percent high school graduates
-
-### Total personal income v.s. Percent bachelor’s degrees
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(totalinc, bagrad)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Total personal income", y="Percent bachelor’s degrees")
-
-# Simple linear regression 
-ba_to = lm(bagrad ~ totalinc, data = cdi)
-summary(ba_to)
+with_inter = var %>% 
+  mutate(
+    docs_beds = docs*beds,
+    beds_totalinc = beds*totalinc,
+    docs_totalinc = docs*totalinc,
+    pop_docs = pop*docs,
+    pop_beds = pop*beds,
+    pop_totalinc = pop*totalinc
+    )
 ```
 
-There is a significant linear increasing between percent bachelor’s degrees and total personal income.
-
-### Total personal income v.s. Per capita income
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(totalinc, pcincome)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Total personal income", y="Per capita income")
-
-# Simple linear regression 
-to_pc = lm(pcincome ~ totalinc, data = cdi)
-summary(to_pc)
-```
-There is a significant linear increasing between per capita income and total personal income.
-
-### Total personal income v.s. percent unemployment
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(totalinc, unemp)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Total personal income", y="Percent unemployment")
-
-# Simple linear regression 
-to_un = lm(unemp ~ totalinc, data = cdi)
-summary(to_un)
-```
-There is NO linear relationship between total personal income and percent unemployment.
-
-### Per capita income v.s. percent unemployment
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(pcincome, unemp)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Per capita income", y="Percent unemployment")
-
-# Simple linear regression 
-pc_un = lm(unemp ~ pcincome, data = cdi)
-summary(pc_un)
-```
-There is a significant linear decreasing between per capita income and percent unemployment.
-
-### Per capita income v.s. percent below poverty level
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(pcincome, poverty)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Per capita income", y="Percent below poverty level")
-
-# Simple linear regression 
-pc_po = lm(poverty ~ pcincome, data = cdi)
-summary(pc_po)
-```
-There is a significant linear decreasing between per capita income and percent below poverty level.
-
-### Per capita income v.s. Percent bachelor’s degrees
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(pcincome, bagrad)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Per capita income", y="Percent bachelor’s degrees")
-
-# Simple linear regression 
-ba_pc = lm(bagrad ~ pcincome, data = cdi)
-summary(ba_pc)
-```
-
-There is a significant linear increasing between per capita income and percent below poverty level.
-
-### Percent unemployment v.s. percent below poverty level
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(unemp, poverty)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Percent unemployment", y="Percent below poverty level")
-
-# Simple linear regression 
-po_un = lm(poverty ~ unemp, data = cdi)
-summary(po_un)
-```
-There is a significant linear increasing between percent unemployment and percent below poverty level.
-
-### Percent unemployment v.s. percent bachelor's degrees
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(unemp, bagrad)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Percent unemployment", y="Percent bachelor's degrees")
-
-# Simple linear regression 
-ba_un = lm(bagrad ~ unemp, data = cdi)
-summary(ba_un)
-```
-There is a significant linear decreasing between per capita income and percent unemployment
-
-### Percent below poverty level v.s. percent bachelor's degrees
-
-```{r}
-# Scatter plot with regression line overlaid and 95% confidence bands
-cdi %>% 
-  ggplot(aes(poverty, bagrad)) + geom_point(color='blue') + theme_bw(base_size=20) +
-  geom_smooth(method='lm', se=TRUE, color='red') +
-  labs(x="Percent below poverty level", y="Percent bachelor's degrees")
-
-# Simple linear regression 
-ba_po = lm(bagrad ~ poverty, data = cdi)
-summary(ba_po)
-```
-
-There is a significant linear decreasing between percent below poverty level and percent bachelor's degrees
+## Variable Selection
 
