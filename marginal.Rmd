@@ -1,0 +1,154 @@
+---
+title: "Marginal Distribution"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+set.seed(1)
+```
+
+
+```{r, message = FALSE}
+#Load data
+crime_df = 
+  read_csv("cdi.csv") %>% 
+  mutate(
+    region = factor(region),
+    pop_density = pop / area,
+    crm_1000 = 1000 * crimes / pop
+  )
+```
+
+To begin with, we take a look on the distribution of crime rate per 1000 population. We find that Kings County in NY is an extreme outlier with close to 300 crime rate, so we may not include this data in the following analysis.
+
+```{r}
+crime_df %>% 
+  ggplot(aes(y = crm_1000)) +
+  geom_boxplot()
+
+crime_df =
+  crime_df %>% 
+  filter(crm_1000 < 200)
+```
+
+First examine the marginal distributions of each variable.
+
+### Population density
+
+```{r, message = FALSE}
+crime_df %>% 
+  ggplot(aes(x = pop_density, y = crm_1000)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+lm_pop_density = lm(crm_1000 ~ pop_density, data = crime_df)
+
+lm_pop_density %>% 
+  broom::tidy()
+```
+
+There is a significant linear increasing between crime rate and population density.
+
+### Region
+
+```{r, message = FALSE}
+crime_df %>% 
+  ggplot(aes(x = region, y = crm_1000)) +
+  geom_boxplot() +
+  geom_smooth(method = "lm")
+
+lm_region = lm(crm_1000 ~ region, data = crime_df)
+
+lm_region %>% 
+  broom::tidy()
+```
+
+There are significant differences of crime rates among four regions of U.S..
+
+### Percent of population aged 18-34
+
+```{r, message = FALSE}
+crime_df %>% 
+  ggplot(aes(x = pop18, y = crm_1000)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+lm_pop18 = lm(crm_1000 ~ pop18, data = crime_df)
+
+lm_pop18 %>% 
+  broom::tidy()
+```
+
+There is a significant linear increasing between crime rate and percent of population aged 18-34.
+
+### Percent of population aged 65+
+
+```{r, message = FALSE}
+crime_df %>% 
+  ggplot(aes(x = pop65, y = crm_1000)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+lm_pop65 = lm(crm_1000 ~ pop65, data = crime_df)
+
+lm_pop65 %>% 
+  broom::tidy()
+```
+
+There is NO significant linear association between crime rate and percent of population aged 65+.
+
+### Number of active physicians
+
+```{r, message = FALSE}
+crime_df %>% 
+  #filter(docs < 10000) %>% 
+  ggplot(aes(x = docs, y = crm_1000)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+lm_docs = lm(crm_1000 ~ docs, data = crime_df)
+
+lm_docs %>% 
+  broom::tidy()
+```
+
+There is a significant linear increasing between crime rate and number of active physicians.
+
+### Number of hospital beds
+
+```{r, message = FALSE}
+crime_df %>% 
+  #filter(beds < 20000) %>% 
+  ggplot(aes(x = beds, y = crm_1000)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+lm_beds = lm(crm_1000 ~ beds, data = crime_df)
+
+lm_beds %>% 
+  broom::tidy()
+```
+
+There is a significant linear increasing between crime rate and number of hospital beds.
