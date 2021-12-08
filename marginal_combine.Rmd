@@ -1,0 +1,97 @@
+---
+title: "Marginal Distribution - Combine"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+set.seed(1)
+```
+
+
+```{r, message = FALSE}
+#Load data
+crime_df = 
+  read_csv("cdi.csv") %>% 
+  mutate(
+    region = factor(region),
+    pop_density = pop / area,
+    crm_1000 = 1000 * crimes / pop
+  )
+```
+
+To begin with, we take a look on the distribution of crime rate per 1000 population. We find that Kings County in NY is an extreme outlier with close to 300 crime rate, so we may not include this data in the following analysis.
+
+```{r}
+crime_df %>% 
+  ggplot(aes(y = crm_1000)) +
+  geom_boxplot()
+
+crime_df =
+  crime_df %>% 
+  filter(crm_1000 < 200) %>%
+  select(-pop, -id, -cty, -state)
+```
+
+First examine the marginal distributions of each variable.
+
+```{r plots, message=FALSE}
+# graph
+compute_plist <- function(x) {
+  if (is.factor(x)) {
+    pl = crime_df %>% 
+    ggplot(aes(x = x, y = crm_1000)) +
+    geom_boxplot() +
+    labs(
+      x = '',
+      y = "Crime Rate",
+    )
+  } else {
+    pl = crime_df %>% 
+    ggplot(aes(x = x, y = crm_1000)) +
+    geom_point() +
+    geom_smooth(method = "lm") +
+    labs(
+      x = '',
+      y = "Crime Rate",
+    )
+  }
+  return(pl)
+}
+
+plist = crime_df %>%
+  select(-crm_1000) %>%
+  map(compute_plist)
+
+labels = crime_df %>%
+  select(-crm_1000) %>%
+  names()
+
+for (i in 1:length(plist)) {
+  plist[[i]] = plist[[i]] + labs(x = labels[[i]])
+}
+
+wrap_plots(plist, ncol = 4)
+```
+
