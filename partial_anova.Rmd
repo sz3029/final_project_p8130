@@ -1,0 +1,213 @@
+---
+title: "Partial ANOVA and Interaction"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include = FALSE, message = FALSE}
+library(tidyverse)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+set.seed(1)
+```
+
+## Data upload
+
+```{r, message = FALSE}
+crime_df = 
+  read_csv("cdi.csv") %>% 
+  mutate(
+    region = factor(region),
+    pop_density = pop / area,
+    crm_1000 = 1000 * crimes / pop
+  ) %>% 
+  select(crm_1000, everything())
+```
+
+## Partial ANOVA with predictors
+
+```{r}
+#linear regression model with full predictors
+fit_no_inte = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + docs + region + pop_density, data = crime_df)
+
+summary(fit_no_inte)
+```
+
+Next using partial ANOVA to test whether large model is superior
+
+```{r}
+# no pop_density
+fit_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + docs + region, data = crime_df)
+summary(fit_1)
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(fit_1, fit_no_inte)
+
+
+```
+
+Reject H0, large model is superior
+
+```{r}
+# no region
+fit_no_inte = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + docs + pop_density + region , data = crime_df)
+fit_2 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + docs + pop_density, data = crime_df)
+summary(fit_2)
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(fit_2, fit_no_inte)
+
+
+```
+
+Reject H0, large model is superior
+
+
+```{r}
+# no docs
+fit_no_inte = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + region + pop_density + docs, data = crime_df)
+fit_3 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + region + pop_density, data = crime_df)
+summary(fit_3)
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(fit_3, fit_no_inte)
+
+
+```
+
+Reject H0, large model is superior
+
+```{r}
+# no beds
+fit_no_inte = lm(crm_1000 ~ totalinc + poverty + hsgrad + region + pop_density + docs+ beds, data = crime_df)
+fit_4 = lm(crm_1000 ~ totalinc + poverty + hsgrad + region + pop_density + docs, data = crime_df)
+summary(fit_4)
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(fit_4, fit_no_inte)
+
+
+```
+
+Reject H0, large model is superior
+
+```{r}
+# no hsgrad
+fit_no_inte = lm(crm_1000 ~ totalinc + poverty + region + pop_density + docs+ beds + hsgrad , data = crime_df)
+fit_5 = lm(crm_1000 ~ totalinc + poverty + region + pop_density + docs + beds, data = crime_df)
+summary(fit_5)
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(fit_5, fit_no_inte)
+
+
+```
+
+Reject H0, large model is superior
+
+```{r}
+# no poverty
+fit_no_inte = lm(crm_1000 ~ totalinc + region + pop_density + docs+ beds + hsgrad + poverty , data = crime_df)
+fit_6 = lm(crm_1000 ~ totalinc + region + pop_density + docs + beds + hsgrad, data = crime_df)
+summary(fit_6)
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(fit_6, fit_no_inte)
+
+
+```
+
+Reject H0, large model is superior
+
+```{r}
+# no totalinc
+fit_no_inte = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + totalinc, data = crime_df)
+fit_7 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density, data = crime_df)
+summary(fit_7)
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(fit_7, fit_no_inte)
+
+
+```
+
+Fail to reject H0, large model is not superior, then we do not include total person income.
+
+
+## Potential Interaction
+
+* Number of active physicians & Number of hospital beds; 
+* Number of hospital beds & Total personal income; 
+* Number of active physicians & Total personal income; 
+
+Consider the variable "total person income" to be the confounder of beds and docs variables?
+
+Build model with interaction
+```{r}
+inter_initial = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + docs * totalinc + beds * totalinc, data = crime_df)
+
+summary(inter_initial)
+```
+
+### Test if three interaction term is significant
+
+```{r}
+# beds and docs
+bed_doc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * totalinc + docs * totalinc, data = crime_df)
+
+anova(bed_doc, inter_initial)
+```
+
+Reject H0
+
+
+```{r}
+# beds and totalinc
+bed_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + docs * totalinc, data = crime_df)
+
+anova(bed_totalinc, inter_initial)
+```
+
+Fail to reject H0, use the simple regression model
+
+
+```{r}
+# docs and totalinc
+doc_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = crime_df)
+
+anova(doc_totalinc, inter_initial)
+```
+
+Fail to reject H0, use the simple regression model
+
+Thus the two candidate regression model should be:
+```{r}
+doc_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = crime_df)
+broom::tidy(doc_totalinc)
+
+```
+
+
+```{r}
+bed_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + docs * totalinc, data = crime_df)
+broom::tidy(bed_totalinc)
+```
+
+
+
+
+

@@ -58,7 +58,7 @@ First examine the marginal distributions of each variable.
 
 ```{r plots, message=FALSE}
 # graph
-compute_plist <- function(x) {
+compute_plist = function(x) {
   if (is.factor(x)) {
     pl = crime_df %>% 
     ggplot(aes(x = x, y = crm_1000)) +
