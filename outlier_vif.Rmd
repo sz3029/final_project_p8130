@@ -1,0 +1,177 @@
+---
+title: "Outlier VIF"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+!! Variables that are correlated with each other don’t have a higher chance of interacting with each other in a model. Interaction means that the effect of one on the outcome will depend on the other. While correlation only means that the 2 variables tend to vary together in a linear fashion. And the latter says nothing about the effect of each on the outcome Y
+
+Backward model:
+crm_1000 ~ pop18 + docs + beds + poverty + pcincome + region + pop_density
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(MASS)
+library(ggplot2)
+library(GGally)
+library(leaps)
+
+library(performance) # vif
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+set.seed(1)
+```
+
+## Read in
+
+```{r input}
+crime_df = 
+  read_csv("cdi.csv") %>% 
+  mutate(
+    region = factor(region),
+    pop_density = pop / area,
+    crm_1000 = 1000 * crimes / pop
+  ) %>% 
+  dplyr::select(-crimes, -id, -area, -pop) %>% 
+  dplyr::select(crm_1000, everything()) %>%
+  drop_na()
+```
+
+## Candidate Models
+
+Models
+
+```{r candidate_models}
+backward = lm(crm_1000 ~ pop18 + docs + beds + 
+    poverty + pcincome + region + pop_density, data = crime_df)
+
+doc_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = crime_df)
+broom::tidy(doc_totalinc)
+
+bed_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + docs * totalinc, data = crime_df)
+broom::tidy(bed_totalinc)
+```
+
+```{r}
+summary(backward)
+```
+
+
+## Outliers and Leverage
+
+Filter out influential observations
+
+```{r backward}
+plot(backward, which = 5)
+```
+
+The observation #433 and #6, #5 is beyond the Cook’s distance lines of 0.5. The plot identified the influential observation as #6, #5 and #433. 
+
+```{r backward_adj}
+crime_df %>%
+  filter(row(crime_df) == 6)
+backward_df <- crime_df %>%
+  filter(row(crime_df) != 6)
+```
+
+Excluding the outliers from the analysis
+
+Model 1: doc_totalinc
+
+greater than 0.5 or 4/n = 0.364 is of concern
+
+```{r}
+plot(doc_totalinc, which = 5)
+```
+
+Excluding the outliers from the analysis, the slope coefficient changes to:
+
+```{r model_1_adj}
+crime_df %>%
+  filter(row(crime_df) == 1 | row(crime_df) == 6)
+model_1_df <- crime_df %>%
+  filter(row(crime_df) != 1 & row(crime_df) != 6)
+
+new_model_1 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = model_1_df)
+summary(new_model_1)
+```
+
+
+Model 2: bed_totalinc
+
+greater than 0.5 or 4/n = 0.364 is of concern
+
+```{r model_2}
+plot(bed_totalinc, which = 5)
+```
+
+Excluding the outliers from the analysis, the slope coefficient changes to:
+
+```{r}
+crime_df %>%
+  filter(row(crime_df) == 2 | row(crime_df) == 6 | row(crime_df) == 1)
+model_2_df <- crime_df %>%
+  filter(row(crime_df) != 2 & row(crime_df) != 6 & row(crime_df) != 1)
+
+new_model_2 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = model_2_df)
+summary(new_model_2)
+```
+
+## Colinearility
+
+```{r}
+# Correlation matrix for all variables
+temp <- crime_df %>%
+  dplyr::select(-state, -cty, -region)
+
+cor(temp)
+```
+
+
+
+```{r colinear}
+crime_df %>% 
+  dplyr::select(-crm_1000) %>% 
+  ggcorr(label = TRUE, label_size = 2, hjust = 0.8)
+```
+
+The correlation plot suggest high correlation between beds and docs, beds and totalinc, docs and totalinc. 
+
+Let's check if the model violates colienarity
+
+```{r}
+check_collinearity(bed_totalinc)
+
+check_collinearity(doc_totalinc)
+
+check_collinearity(backward)
+```
+
+## Final models
+
+```{r}
+backward = lm(crm_1000 ~ cty + state + pop65 + docs + beds + hsgrad + bagrad + 
+    poverty + pcincome + totalinc + pop_density, data = backward_df)
+
+doc_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = model_1_df)
+
+bed_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + docs * totalinc, data = model_2_df)
+
+backward %>% broom::tidy()
+doc_totalinc %>% broom::tidy()
+bed_totalinc %>% broom::tidy()
+```
+
+
+There is no colinearity in our models
+
+
+

@@ -39,7 +39,9 @@ crime_df =
 
 ## Auto, backward
 ```{r}
-mult.fit = lm(crm_1000 ~ ., data = crime_df)
+temp <- crime_df %>%
+  dplyr::select(-cty, -state)
+mult.fit = lm(crm_1000 ~ ., data = temp)
 mult.back = step(mult.fit, direction = "backward")
 ```
 
