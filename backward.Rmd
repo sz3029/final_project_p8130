@@ -1,0 +1,83 @@
+---
+title: "Model-selection-backwork"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(corrplot)
+library(leaps)
+
+```
+
+## Exploratory Analysis
+
+```{r}
+# read data 
+cdi_df = read_csv("./cdi.csv") %>% 
+  select(-id) %>% 
+  select(-cty) %>% 
+  select(-state) %>% 
+  relocate(crimes)
+
+# fit regression using all predictors
+mult.fit = lm(crimes ~ ., data = cdi_df)
+
+step(mult.fit, direction = 'backward')
+step(mult.fit, direction = 'forward')
+step(mult.fit, direction = 'both')
+
+#forward
+forward = lm(formula = crimes ~ area + pop + pop18 + pop65 + docs + beds + 
+    hsgrad + bagrad + poverty + unemp + pcincome + totalinc + 
+    region, data = cdi_df)
+stepf = step(forward)
+summary(stepf)
+
+#backward
+backward = lm(formula = crimes ~ area + pop + poverty + pcincome + totalinc, 
+    data = cdi_df)
+stepb = step(backward)
+summary(stepb)
+
+#stepwise
+stepwise = lm(formula = crimes ~ area + pop + poverty + pcincome + totalinc, 
+    data = cdi_df)
+steps = step(stepwise)
+summary(steps)
+```
+
+Call:
+lm(formula = crimes ~ id + cty + state + area + pop + pop18 + 
+    pop65 + docs + beds + bagrad + poverty + unemp + totalinc, 
+    data = cdi_df)
+    
+## Test Based Procedures
+
+```{r}
+mat = as.matrix(cdi_df)
+# Printing the 2 best models of each size, using the Cp criterion:
+leaps(x = mat[,2:14], y = mat[,1], nbest = 2, method = "Cp")
+
+# Printing the 2 best models of each size, using the adjusted R^2 criterion:
+leaps(x = mat[,2:14], y = mat[,1], nbest = 2, method = "adjr2")
+
+# Function regsubsets() performs a subset selection by identifying the "best" model that contains
+# a certain number of predictors. By default "best" is chosen using SSE/RSS (smaller is better)
+b = regsubsets(crimes ~ ., data = cdi_df)
+rs = summary(b)
+
+# plot of Cp and Adj-R2 as functions of parameters
+par(mfrow=c(1,2))
+
+plot(1:8, rs$cp, xlab="No of parameters", ylab="Cp Statistic")
+abline(0,1)
+#6
+plot(1:8, rs$adjr2, xlab="No of parameters", ylab="Adj R2")
+#6
+```
+
+  
+  
