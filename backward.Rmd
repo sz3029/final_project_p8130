@@ -25,9 +25,11 @@ crime_df =
   mutate(
     region = factor(region),
     pop_density = pop / area,
-    crm_1000 = 1000 * crimes / pop
+    crm_1000 = 1000 * crimes / pop,
+    beds_density = beds / pop,
+    docs_density = docs / pop
   ) %>% 
-  dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -region) %>% 
+  dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -region, -beds, -docs) %>% 
   dplyr::select(crm_1000, everything())
 
 # fit regression using all predictors
