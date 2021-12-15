@@ -32,10 +32,13 @@ crime_df =
   mutate(
     region = factor(region),
     pop_density = pop / area,
+    beds_density = beds / area,
+    docs_density = docs / area,
     crm_1000 = 1000 * crimes / pop
   ) %>% 
-  dplyr::select(-crimes, -id, -area, -pop) %>% 
-  dplyr::select(crm_1000, everything())
+  dplyr::select(-crimes, -id, -area, -pop, -beds, -docs) %>% 
+  dplyr::select(crm_1000, everything()) %>%
+  drop_na()
 ```
 
 ## EDA
@@ -304,62 +307,58 @@ model_3 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome +
     region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
 ```
 
-## Model Diagonistic
-
-residual vs fitted plot
+## Diagnostic: Boxcox
 ```{r}
-par(mfrow = c(1,3))
-plot(model_1, which = 1)
-plot(model_2, which = 1)
-plot(model_3, which = 1)
-```
+#model 1
+bc <- boxcox(model_1, lambda = seq(-5, 5, by = 0.25))
+lambda <- bc$x[which.max(bc$y)]
+#choose power 1/2
 
-QQ plot
-```{r}
-par(mfrow = c(1,3))
+crime_df$crm.bc <- crime_df$crm_1000^(1/2)
+model_bc1 = lm(crm.bc ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
+
+par(mfrow = c(1,2))
 plot(model_1, which = 2)
-plot(model_2, which = 2)
-plot(model_3, which = 2)
+plot(model_bc1, which = 2)
+
+summary(model_1)
+summary(model_bc1)
 ```
 
-Scale-Location
 ```{r}
-par(mfrow = c(1,3))
-plot(model_1, which = 3)
-plot(model_2, which = 3)
-plot(model_3, which = 3)
-```
-
-Residual
-```{r}
-par(mfrow = c(1,3))
-plot(model_1, which = 5)
-plot(model_2, which = 5)
-plot(model_3, which = 5)
-```
-
-## Boxcox
-```{r}
+#model 2
 bc <- boxcox(model_2, lambda = seq(-5, 5, by = 0.25))
 lambda <- bc$x[which.max(bc$y)]
+#choose power 1/2
 
-BCTransform <- function(y, lambda=0) {
-    if (lambda == 0L) { log(y) }
-    else { (y^lambda - 1) / lambda }
-}
-
-BCTransformInverse <- function(yt, lambda=0) {
-    if (lambda == 0L) { exp(yt) }
-    else { exp(log(1 + lambda * yt)/lambda) }
-}
-
-crime_df$crm.bc <- BCTransform(crime_df$crm_1000, lambda)
-model_bc = lm(crm.bc ~ pop18 + docs + beds + poverty + pcincome + 
+crime_df$crm.bc <- crime_df$crm_1000^(1/2)
+model_bc2 = lm(crm.bc ~ pop18 + docs + beds + poverty + pcincome + 
     region + pop_density + poverty*pop_density + docs*region + beds*docs, data = crime_df)
 
 par(mfrow = c(1,2))
 plot(model_2, which = 2)
-plot(model_bc, which = 2)
+plot(model_bc2, which = 2)
+
+summary(model_2)
+summary(model_bc2)
+```
+
+```{r}
+#model 3
+bc <- boxcox(model_3, lambda = seq(-5, 5, by = 0.25))
+lambda <- bc$x[which.max(bc$y)]
+#choose power 1/2
+
+crime_df$crm.bc <- crime_df$crm_1000^(1/2)
+model_bc3 = lm(crm.bc ~ pop18 + docs + beds + poverty + pcincome + 
+    region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
+
+par(mfrow = c(1,2))
+plot(model_3, which = 2)
+plot(model_bc3, which = 2)
+
+summary(model_3)
+summary(model_bc3)
 ```
 
 
