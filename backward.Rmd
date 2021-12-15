@@ -29,7 +29,7 @@ crime_df =
     beds_density = beds / pop,
     docs_density = docs / pop
   ) %>% 
-  dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -region, -beds, -docs) %>% 
+  dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -beds, -docs) %>% 
   dplyr::select(crm_1000, everything())
 
 # fit regression using all predictors
@@ -47,7 +47,18 @@ step(mult.fit, direction = 'both')
 ## Test Based Procedures
 
 ```{r}
-mat = as.matrix(crime_df)
+crime_df2 = 
+  read_csv("cdi.csv") %>% 
+  mutate(
+    region = factor(region),
+    pop_density = pop / area,
+    crm_1000 = 1000 * crimes / pop,
+    beds_density = beds / pop,
+    docs_density = docs / pop
+  ) %>% 
+  dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -beds, -docs, -region) %>%
+  dplyr::select(crm_1000, everything())
+mat = as.matrix(crime_df2)
 # Printing the 2 best models of each size, using the Cp criterion:
 leaps(x = mat[,2:12], y = mat[,1], nbest = 2, method = "Cp")
 
@@ -56,18 +67,41 @@ leaps(x = mat[,2:12], y = mat[,1], nbest = 2, method = "adjr2")
 
 # Function regsubsets() performs a subset selection by identifying the "best" model that contains
 # a certain number of predictors. By default "best" is chosen using SSE/RSS (smaller is better)
-b = regsubsets(crm_1000 ~ ., data = crime_df)
+b = regsubsets(crm_1000 ~ ., data = crime_df2)
 rs = summary(b)
 
 # plot of Cp and Adj-R2 as functions of parameters
 par(mfrow=c(1,2))
 
-plot(1:8, rs$cp, xlab="No of parameters", ylab="Cp Statistic")
+plot(2:9, rs$cp, xlab="No of parameters", ylab="Cp Statistic")
 abline(0,1)
 #6
-plot(1:8, rs$adjr2, xlab="No of parameters", ylab="Adj R2")
+plot(2:9, rs$adjr2, xlab="No of parameters", ylab="Adj R2")
 #6
 ```
 
-  
+```{r}
+Model_backward =
+  lm(formula = crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density, data = crime_df)
+summary(Model_backward)
+
+Model_forward =
+  lm(formula = crm_1000 ~ pop18 + pop65 + hsgrad + bagrad + poverty + unemp + pcincome + totalinc + region + pop_density + beds_density + docs_density, data = crime_df)
+summary(Model_forward)
+
+Model_stepwise = 
+  lm(formula = crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density, data = crime_df)
+summary(Model_stepwise)
+
+cp1 = 
+  lm(formula = crm_1000 ~ pop18 + hsgrad + poverty + unemp + totalinc + pop_density + docs_density, data = crime_df2)
+AIC(cp1)
+summary(cp1)
+
+cp2 = 
+  lm(formula = crm_1000 ~ pop65 + hsgrad + poverty + unemp + totalinc + pop_density + docs_density, data = crime_df2)
+AIC(cp2)
+summary(cp2)
+```
+
   
