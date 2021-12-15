@@ -72,7 +72,7 @@ Proceed with backward
 
 ## Cp
 ```{r}
-temp <- crime_df %>%
+temp = crime_df %>%
   dplyr::select(-cty, -state)
 
 reg = regsubsets(crm_1000 ~ ., data = temp)

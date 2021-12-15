@@ -11,8 +11,8 @@ output:
 library(tidyverse)
 
 knitr::opts_chunk$set(
-  fig.width = 8,
-  fig.asp = .8,
+  fig.width = 6,
+  fig.asp = .6,
   out.width = "90%"
 )
 
@@ -92,6 +92,6 @@ for (i in 1:length(plist)) {
   plist[[i]] = plist[[i]] + labs(x = labels[[i]])
 }
 
-wrap_plots(plist, ncol = 3)
+wrap_plots(plist, ncol = 4)
 ```
 
