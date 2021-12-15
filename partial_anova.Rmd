@@ -32,10 +32,13 @@ crime_df =
   mutate(
     region = factor(region),
     pop_density = pop / area,
+    beds_density = beds / area,
+    docs_density = docs / area,
     crm_1000 = 1000 * crimes / pop
   ) %>% 
-  dplyr::select(-crimes, -id, -area, -pop) %>% 
-  dplyr::select(crm_1000, everything())
+  dplyr::select(-crimes, -id, -area, -pop, -beds, -docs) %>% 
+  dplyr::select(crm_1000, everything()) %>%
+  drop_na()
 ```
 
 ## EDA
