@@ -32,10 +32,13 @@ crime_df =
   mutate(
     region = factor(region),
     pop_density = pop / area,
+    beds_density = beds / area,
+    docs_density = docs / area,
     crm_1000 = 1000 * crimes / pop
   ) %>% 
-  dplyr::select(-crimes, -id, -area, -pop) %>% 
-  dplyr::select(crm_1000, everything())
+  dplyr::select(-crimes, -id, -area, -pop, -beds, -docs) %>% 
+  dplyr::select(crm_1000, everything()) %>%
+  drop_na()
 ```
 
 ## EDA
@@ -57,47 +60,32 @@ crime_state %>%
 ```
 
 ## Models
+
+Auto selected model with backward
+
 ```{r}
-model_backward = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density, data = crime_df)
+Model_backward =lm(formula = crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density, data = crime_df)
 
-model_forward = lm(crm_1000 ~ pop18 + pop65 + docs + beds + hsgrad + 
-    bagrad + poverty + unemp + pcincome + totalinc + region + 
-    pop_density, data = crime_df)
-
-model_stepwise = lm(crm_1000 ~ pop18 + docs + beds + hsgrad + bagrad + 
-    poverty + pcincome + totalinc + pop_density, data = crime_df)
-```
-Proceed with backward
-
-## Cp
-```{r}
-temp <- crime_df %>%
-  dplyr::select(-cty, -state)
-
-reg = regsubsets(crm_1000 ~ ., data = temp)
-rs = summary(reg)
-
-plot(2:9, rs$cp, xlab="No of parameters", ylab="Cp Statistic")
-abline(0,1)
-
-plot(2:9, rs$adjr2, xlab="No of parameters", ylab="Adj R2")
 ```
 
-## Partial ANOVA model_select
+
+
+## Partial ANOVA model select without interaction
 
 ```{r}
 #linear regression model with full predictors
-fit_no_inte = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + docs + region + pop_density, data = crime_df)
+fit_no_inte = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density, data = crime_df)
 
 summary(fit_no_inte)
 ```
 
 Next using partial ANOVA to test whether large model is superior
 
+### no pop_density
 ```{r}
-# no pop_density
-fit_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + docs + region, data = crime_df)
+
+fit_1 = lm(crm_1000 ~ pop18 + totalinc + poverty + hsgrad + beds_density + docs_density + region, data = crime_df)
 summary(fit_1)
 
 # compare nested (small vs large) models
@@ -107,10 +95,11 @@ anova(fit_1, fit_no_inte)
 
 Reject H0, large model is superior
 
+### no region
+
 ```{r}
-# no region
-fit_no_inte = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + docs + pop_density + region , data = crime_df)
-fit_2 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + docs + pop_density, data = crime_df)
+
+fit_2 = lm(crm_1000 ~ pop18 + totalinc + poverty + hsgrad + beds_density + docs_density + pop_density, data = crime_df)
 summary(fit_2)
 
 # compare nested (small vs large) models
@@ -120,10 +109,11 @@ anova(fit_2, fit_no_inte)
 
 Reject H0, large model is superior
 
+
+### no docs_density
+
 ```{r}
-# no docs
-fit_no_inte = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + region + pop_density + docs, data = crime_df)
-fit_3 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds + region + pop_density, data = crime_df)
+fit_3 = lm(crm_1000 ~  pop18 + totalinc + poverty + hsgrad + beds_density + region + pop_density, data = crime_df)
 summary(fit_3)
 
 # compare nested (small vs large) models
@@ -133,10 +123,11 @@ anova(fit_3, fit_no_inte)
 
 Reject H0, large model is superior
 
+### no beds_density
+
 ```{r}
-# no beds
-fit_no_inte = lm(crm_1000 ~ totalinc + poverty + hsgrad + region + pop_density + docs+ beds, data = crime_df)
-fit_4 = lm(crm_1000 ~ totalinc + poverty + hsgrad + region + pop_density + docs, data = crime_df)
+
+fit_4 = lm(crm_1000 ~ pop18 + totalinc + poverty + hsgrad + region + pop_density + docs_density, data = crime_df)
 summary(fit_4)
 
 # compare nested (small vs large) models
@@ -146,10 +137,10 @@ anova(fit_4, fit_no_inte)
 
 Reject H0, large model is superior
 
+
+### no hsgrad
 ```{r}
-# no hsgrad
-fit_no_inte = lm(crm_1000 ~ totalinc + poverty + region + pop_density + docs+ beds + hsgrad , data = crime_df)
-fit_5 = lm(crm_1000 ~ totalinc + poverty + region + pop_density + docs + beds, data = crime_df)
+fit_5 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + docs_density + beds_density, data = crime_df)
 summary(fit_5)
 
 # compare nested (small vs large) models
@@ -159,10 +150,11 @@ anova(fit_5, fit_no_inte)
 
 Reject H0, large model is superior
 
+
+### no poverty
 ```{r}
-# no poverty
-fit_no_inte = lm(crm_1000 ~ totalinc + region + pop_density + docs+ beds + hsgrad + poverty , data = crime_df)
-fit_6 = lm(crm_1000 ~ totalinc + region + pop_density + docs + beds + hsgrad, data = crime_df)
+
+fit_6 = lm(crm_1000 ~ pop18 + totalinc + region + pop_density + docs_density + beds_density + hsgrad, data = crime_df)
 summary(fit_6)
 
 # compare nested (small vs large) models
@@ -172,10 +164,10 @@ anova(fit_6, fit_no_inte)
 
 Reject H0, large model is superior
 
+
+### no totalinc
 ```{r}
-# no totalinc
-fit_no_inte = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + totalinc, data = crime_df)
-fit_7 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density, data = crime_df)
+fit_7 = lm(crm_1000 ~ pop18 + poverty + hsgrad + beds_density + docs_density + region + pop_density, data = crime_df)
 summary(fit_7)
 
 # compare nested (small vs large) models
@@ -183,33 +175,49 @@ summary(fit_7)
 anova(fit_7, fit_no_inte)
 ```
 
-Fail to reject H0, large model is not superior, then we do not include total person income.
+Reject H0, large model is superior.
+
+### no pop18
+```{r}
+fit_8 = lm(crm_1000 ~ poverty + hsgrad + beds_density + docs_density + region + pop_density + totalinc, data = crime_df)
+summary(fit_7)
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(fit_8, fit_no_inte)
+```
+
+Fail to reject H0, so we keep the small model.
+
+Thus, the fit model would be: `model_selective = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density, data = crime_df)`
+
+
 
 ## Potential Interaction
 
 ```{r}
-coplot(crm_1000 ~ poverty | pop_density, data = crime_df,
+coplot(crm_1000 ~ pop18 | region, data = crime_df,
        number = 4, rows = 1,
        panel = panel.smooth)
 
-coplot(crm_1000 ~ poverty | docs, data = crime_df,
+coplot(crm_1000 ~ bagrad | poverty, data = crime_df,
        number = 4, rows = 1,
        panel = panel.smooth)
 
-coplot(crm_1000 ~ docs | region, data = crime_df,
+coplot(crm_1000 ~ poverty | region, data = crime_df,
        number = 4, rows = 1,
        panel = panel.smooth)
 
-coplot(crm_1000 ~ beds | docs, data = crime_df,
+coplot(crm_1000 ~ pcincome | region, data = crime_df,
        number = 4, rows = 1,
        panel = panel.smooth)
 ```
 
-### model_select
+### model_select with interaction
 
 Build model with interaction
 ```{r}
-select_1 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + poverty*docs + docs*region + beds*docs, data = crime_df)
+select_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + pop18*region + bagrad*poverty + poverty*region + pcincome*region, data = crime_df)
 
 summary(select_1)
 ```
@@ -217,149 +225,148 @@ summary(select_1)
 Test if three interaction term is significant
 
 ```{r}
-select_2 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*docs + docs*region + beds*docs, data = crime_df)
+select_2 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + bagrad*poverty + poverty*region + pcincome*region, data = crime_df)
 
 anova(select_2, select_1)
 ```
 
-Reject H0
+accept H0
 
 ```{r}
-select_3 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + docs*region + beds*docs, data = crime_df)
+select_3 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + poverty*region + pcincome*region, data = crime_df)
 
 anova(select_3, select_1)
 ```
 
-Fail to reject
+Reject H0
 
 ```{r}
-select_4 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + docs*region, data = crime_df)
+select_4 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + bagrad*poverty + pcincome*region, data = crime_df)
 
 anova(select_4, select_1)
 ```
 
-Reject H0
+Accept H0
 
 ```{r}
-select_5 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
+select_5 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + bagrad*poverty, data = crime_df)
 
-anova(select_3, select_1)
+anova(select_5, select_1)
 ```
 
+Reject H0
 
 ### model_backward
 ```{r}
-backward_1 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + poverty*docs + docs*region + beds*docs, data = crime_df)
+backward_1 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + pop18*region + bagrad*poverty + poverty*region + pcincome*region, data = crime_df)
 summary(backward_1)
 ```
 
 Test if interaction term is significant
 
 ```{r}
-backward_2 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*docs + docs*region + beds*docs, data = crime_df)
+backward_2 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region + pcincome*region, data = crime_df)
 
 anova(backward_2, backward_1)
+```
+
+Not Reject H0
+
+```{r}
+backward_3 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + poverty*region + pcincome*region, data = crime_df)
+
+anova(backward_3, backward_1)
 ```
 
 Reject H0
 
 ```{r}
-backward_3 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + docs*region + beds*docs, data = crime_df)
-
-anova(backward_3, backward_1)
-```
-
-Fail to reject, keep simpler
-
-```{r}
-backward_4 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + docs*region, data = crime_df)
+backward_4 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty + pcincome*region, data = crime_df)
 anova(backward_4, backward_1)
 ```
 
 Reject H0
 
 ```{r}
-backward_5 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
+backward_5 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = crime_df)
 
 anova(backward_5, backward_1)
 ```
 
-Reject H0
+Accept H0
 
 ## Candidate models
 
-Thus the four candidate regression model should be:
+Thus the three candidate regression model should be:
 ```{r}
-model_1 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
+model_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + bagrad*poverty + + pcincome*region, data = crime_df)
 
-model_2 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + docs*region + beds*docs, data = crime_df)
+model_2 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = crime_df)
 
-model_3 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
+model_3 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty, data = crime_df)
 ```
 
-## Model Diagonistic
 
-residual vs fitted plot
-```{r}
-par(mfrow = c(1,3))
-plot(model_1, which = 1)
-plot(model_2, which = 1)
-plot(model_3, which = 1)
-```
 
-QQ plot
+## Diagnostic: Boxcox
 ```{r}
-par(mfrow = c(1,3))
+#model 1
+bc = boxcox(model_1, lambda = seq(-5, 5, by = 0.25))
+lambda = bc$x[which.max(bc$y)]
+#choose power 1/2
+
+crime_df$crm.bc = crime_df$crm_1000^(1/2)
+model_bc1 = lm(crm.bc ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + bagrad*poverty + + pcincome*region, data = crime_df)
+
+par(mfrow = c(1,2))
 plot(model_1, which = 2)
-plot(model_2, which = 2)
-plot(model_3, which = 2)
+plot(model_bc1, which = 2)
+
+summary(model_1)
+summary(model_bc1)
 ```
 
-Scale-Location
 ```{r}
-par(mfrow = c(1,3))
-plot(model_1, which = 3)
-plot(model_2, which = 3)
-plot(model_3, which = 3)
-```
+#model 2
+bc = boxcox(model_2, lambda = seq(-5, 5, by = 0.25))
+lambda = bc$x[which.max(bc$y)]
+#choose power 1/2
 
-Residual
-```{r}
-par(mfrow = c(1,3))
-plot(model_1, which = 5)
-plot(model_2, which = 5)
-plot(model_3, which = 5)
-```
-
-## Boxcox
-```{r}
-bc <- boxcox(model_2, lambda = seq(-5, 5, by = 0.25))
-lambda <- bc$x[which.max(bc$y)]
-
-BCTransform <- function(y, lambda=0) {
-    if (lambda == 0L) { log(y) }
-    else { (y^lambda - 1) / lambda }
-}
-
-BCTransformInverse <- function(yt, lambda=0) {
-    if (lambda == 0L) { exp(yt) }
-    else { exp(log(1 + lambda * yt)/lambda) }
-}
-
-crime_df$crm.bc <- BCTransform(crime_df$crm_1000, lambda)
-model_bc = lm(crm.bc ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + docs*region + beds*docs, data = crime_df)
+crime_df$crm.bc = crime_df$crm_1000^(1/2)
+model_bc2 = lm(crm.bc ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = crime_df)
 
 par(mfrow = c(1,2))
 plot(model_2, which = 2)
-plot(model_bc, which = 2)
+plot(model_bc2, which = 2)
+
+summary(model_2)
+summary(model_bc2)
+```
+
+```{r}
+#model 3
+bc = boxcox(model_3, lambda = seq(-5, 5, by = 0.25))
+lambda = bc$x[which.max(bc$y)]
+#choose power 1/2
+
+crime_df$crm.bc <- crime_df$crm_1000^(1/2)
+model_bc3 = lm(crm.bc ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty, data = crime_df)
+
+par(mfrow = c(1,2))
+plot(model_3, which = 2)
+plot(model_bc3, which = 2)
+
+summary(model_3)
+summary(model_bc3)
 ```
 
 

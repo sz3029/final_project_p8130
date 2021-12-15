@@ -12,7 +12,6 @@ Backward model:
 crm_1000 ~ pop18 + docs + beds + poverty + pcincome + region + pop_density
 
 ```{r setup, include=FALSE}
-library(tidyverse)
 library(dplyr)
 library(MASS)
 library(ggplot2)
@@ -20,6 +19,9 @@ library(GGally)
 library(leaps)
 
 library(performance) # vif
+library(tidyverse)
+
+library(patchwork)
 
 knitr::opts_chunk$set(
   fig.width = 6,
@@ -38,98 +40,84 @@ crime_df =
   mutate(
     region = factor(region),
     pop_density = pop / area,
+    beds_density = beds / area,
+    docs_density = docs / area,
     crm_1000 = 1000 * crimes / pop
   ) %>% 
-  dplyr::select(-crimes, -id, -area, -pop) %>% 
+  dplyr::select(-crimes, -id, -area, -pop, -beds, -docs) %>% 
   dplyr::select(crm_1000, everything()) %>%
   drop_na()
 ```
 
 ## Candidate Models
 
-Models
-
 ```{r candidate_models}
-backward = lm(crm_1000 ~ pop18 + docs + beds + 
-    poverty + pcincome + region + pop_density, data = crime_df)
+model_1 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
 
-doc_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = crime_df)
-broom::tidy(doc_totalinc)
+# docs*region
+model_2 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
+    region + pop_density + poverty*pop_density + docs*region + beds*docs, data = crime_df)
 
-bed_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + docs * totalinc, data = crime_df)
-broom::tidy(bed_totalinc)
+model_3 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
+    region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
 ```
+
+# Residuals
 
 ```{r}
-summary(backward)
+plot(model_1, which = 1)
+plot(model_2, which = 1)
+plot(model_3, which = 1)
 ```
 
-
-## Outliers and Leverage
+## Normal QQ plots
 
 Filter out influential observations
 
 ```{r backward}
-plot(backward, which = 5)
+plot(model_1, which = 2)
+plot(model_2, which = 2)
+plot(model_3, which = 2)
 ```
 
-The observation #433 and #6, #5 is beyond the Cook’s distance lines of 0.5. The plot identified the influential observation as #6, #5 and #433. 
+The observation #11 is an outlier in all three
+
+# Scale and locations
+
+```{r}
+plot(model_1, which = 3)
+plot(model_2, which = 3)
+plot(model_3, which = 3)
+```
+The observation #11, #215, #282 is identified
+
+# Outliers and Leverage
+```{r}
+plot(model_1, which = 5)
+plot(model_2, which = 5)
+plot(model_3, which = 5)
+```
+
+```{r}
+plot(model_1, which = 6)
+plot(model_2, which = 6)
+plot(model_3, which = 6)
+```
+
+The observation #6 and #1, is beyond the Cook’s distance lines of 0.5 (> 1). The plot identified the influential observation as #6, #1
 
 ```{r backward_adj}
 crime_df %>%
-  filter(row(crime_df) == 6)
-backward_df <- crime_df %>%
-  filter(row(crime_df) != 6)
-```
-
-Excluding the outliers from the analysis
-
-Model 1: doc_totalinc
-
-greater than 0.5 or 4/n = 0.364 is of concern
-
-```{r}
-plot(doc_totalinc, which = 5)
-```
-
-Excluding the outliers from the analysis, the slope coefficient changes to:
-
-```{r model_1_adj}
-crime_df %>%
-  filter(row(crime_df) == 1 | row(crime_df) == 6)
-model_1_df <- crime_df %>%
-  filter(row(crime_df) != 1 & row(crime_df) != 6)
-
-new_model_1 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = model_1_df)
-summary(new_model_1)
-```
-
-
-Model 2: bed_totalinc
-
-greater than 0.5 or 4/n = 0.364 is of concern
-
-```{r model_2}
-plot(bed_totalinc, which = 5)
-```
-
-Excluding the outliers from the analysis, the slope coefficient changes to:
-
-```{r}
-crime_df %>%
-  filter(row(crime_df) == 2 | row(crime_df) == 6 | row(crime_df) == 1)
-model_2_df <- crime_df %>%
-  filter(row(crime_df) != 2 & row(crime_df) != 6 & row(crime_df) != 1)
-
-new_model_2 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = model_2_df)
-summary(new_model_2)
+  filter(row(crime_df) == 6 | row(crime_df) == 1)
+crime_after <- crime_df %>%
+  filter(row(crime_df) != 6 & row(crime_df) != 1)
 ```
 
 ## Colinearility
 
 ```{r}
 # Correlation matrix for all variables
-temp <- crime_df %>%
+temp <- crime_after %>%
   dplyr::select(-state, -cty, -region)
 
 cor(temp)
@@ -138,7 +126,7 @@ cor(temp)
 
 
 ```{r colinear}
-crime_df %>% 
+crime_after %>% 
   dplyr::select(-crm_1000) %>% 
   ggcorr(label = TRUE, label_size = 2, hjust = 0.8)
 ```
@@ -148,26 +136,43 @@ The correlation plot suggest high correlation between beds and docs, beds and to
 Let's check if the model violates colienarity
 
 ```{r}
-check_collinearity(bed_totalinc)
+check_collinearity(model_1)
 
-check_collinearity(doc_totalinc)
+check_collinearity(model_2)
 
-check_collinearity(backward)
+check_collinearity(model_3)
 ```
+
+```{r}
+check_collinearity(model_1)
+
+#check_collinearity(model_2_new)
+
+check_collinearity(model_3)
+```
+
 
 ## Final models
 
 ```{r}
-backward = lm(crm_1000 ~ cty + state + pop65 + docs + beds + hsgrad + bagrad + 
-    poverty + pcincome + totalinc + pop_density, data = backward_df)
+model_1_new = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + beds*docs, data = crime_after)
 
-doc_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + beds * totalinc, data = model_1_df)
+# docs*region
+#model_2_new = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
+    #region + pop_density + poverty*pop_density + beds*docs, data = crime_after)
 
-bed_totalinc = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + beds * docs + docs * totalinc, data = model_2_df)
+model_3_new = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
+    region + pop_density + poverty*pop_density + beds*docs, data = crime_after)
 
-backward %>% broom::tidy()
-doc_totalinc %>% broom::tidy()
-bed_totalinc %>% broom::tidy()
+model_1_new %>% broom::tidy() %>% knitr::kable() 
+#model_2_new %>% broom::tidy() %>% knitr::kable()
+model_3_new %>% broom::tidy() %>% knitr::kable()
+```
+
+```{r}
+model_1 %>% broom::tidy() %>% knitr::kable()
+model_2 %>% broom::tidy() %>% knitr::kable()
+model_3 %>% broom::tidy() %>% knitr::kable()
 ```
 
 
