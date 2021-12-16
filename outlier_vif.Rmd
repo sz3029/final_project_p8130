@@ -52,14 +52,13 @@ crime_df =
 ## Candidate Models
 
 ```{r candidate_models}
-model_1 = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
+model_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + bagrad*poverty, data = crime_df)
 
-# docs*region
-model_2 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + docs*region + beds*docs, data = crime_df)
+model_2 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = crime_df)
 
-model_3 = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + beds*docs, data = crime_df)
+model_3 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty, data = crime_df)
 ```
 
 # Residuals
@@ -69,6 +68,7 @@ plot(model_1, which = 1)
 plot(model_2, which = 1)
 plot(model_3, which = 1)
 ```
+observation #6, #215
 
 ## Normal QQ plots
 
@@ -80,7 +80,7 @@ plot(model_2, which = 2)
 plot(model_3, which = 2)
 ```
 
-The observation #11 is an outlier in all three
+The observation #6, #215, #123is an outlier in all three
 
 # Scale and locations
 
@@ -89,7 +89,7 @@ plot(model_1, which = 3)
 plot(model_2, which = 3)
 plot(model_3, which = 3)
 ```
-The observation #11, #215, #282 is identified
+The observation #123, #6, #215 is identified
 
 # Outliers and Leverage
 ```{r}
@@ -98,19 +98,22 @@ plot(model_2, which = 5)
 plot(model_3, which = 5)
 ```
 
+observation #1, #6
+
 ```{r}
 plot(model_1, which = 6)
 plot(model_2, which = 6)
 plot(model_3, which = 6)
 ```
+ #1, #123, #6
 
 The observation #6 and #1, is beyond the Cook’s distance lines of 0.5 (> 1). The plot identified the influential observation as #6, #1
 
 ```{r backward_adj}
 crime_df %>%
-  filter(row(crime_df) == 6 | row(crime_df) == 1)
+  filter(row(crime_df) == 6 | row(crime_df) == 123| row(crime_df) == 215)
 crime_after <- crime_df %>%
-  filter(row(crime_df) != 6 & row(crime_df) != 1)
+  filter(row(crime_df) != 6 & row(crime_df) != 123)
 ```
 
 ## Colinearility
@@ -135,48 +138,44 @@ The correlation plot suggest high correlation between beds and docs, beds and to
 
 Let's check if the model violates colienarity
 
+Calculate VIF w/o interaction terms
 ```{r}
-check_collinearity(model_1)
+model_1_new = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density, data = crime_after)
 
-check_collinearity(model_2)
+model_2_new = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density, data = crime_after)
 
-check_collinearity(model_3)
+model_3_new = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density, data = crime_after)
+
+check_collinearity(model_1_new)
+
+check_collinearity(model_2_new)
+
+check_collinearity(model_3_new)
 ```
 
-```{r}
-check_collinearity(model_1)
-
-#check_collinearity(model_2_new)
-
-check_collinearity(model_3)
-```
-
+There is no multicolinearity in our models
 
 ## Final models
 
 ```{r}
-model_1_new = lm(crm_1000 ~ poverty + hsgrad + beds + docs + region + pop_density + poverty*pop_density + beds*docs, data = crime_after)
+model_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + bagrad*poverty, data = crime_after)
 
-# docs*region
-#model_2_new = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    #region + pop_density + poverty*pop_density + beds*docs, data = crime_after)
+model_2 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = crime_after)
 
-model_3_new = lm(crm_1000 ~ pop18 + docs + beds + poverty + pcincome + 
-    region + pop_density + poverty*pop_density + beds*docs, data = crime_after)
+model_3 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density + bagrad*poverty, data = crime_after)
 
-model_1_new %>% broom::tidy() %>% knitr::kable() 
-#model_2_new %>% broom::tidy() %>% knitr::kable()
-model_3_new %>% broom::tidy() %>% knitr::kable()
-```
-
-```{r}
-model_1 %>% broom::tidy() %>% knitr::kable()
+model_1 %>% broom::tidy() %>% knitr::kable() 
 model_2 %>% broom::tidy() %>% knitr::kable()
 model_3 %>% broom::tidy() %>% knitr::kable()
 ```
 
 
-There is no colinearity in our models
+
+
 
 
 

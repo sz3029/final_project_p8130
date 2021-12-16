@@ -8,8 +8,8 @@ output:
 ---
 
 ```{r setup, include = FALSE}
+library(patchwork)
 library(tidyverse)
-
 knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp = .6,
@@ -38,21 +38,11 @@ crime_df =
     region = factor(region),
     pop_density = pop / area,
     crm_1000 = 1000 * crimes / pop
-  )
+  ) %>%
+  select(-pop, -id, -cty, -state, -area, -crimes)
 ```
 
 To begin with, we take a look on the distribution of crime rate per 1000 population. We find that Kings County in NY is an extreme outlier with close to 300 crime rate, so we may not include this data in the following analysis.
-
-```{r}
-crime_df %>% 
-  ggplot(aes(y = crm_1000)) +
-  geom_boxplot()
-
-crime_df =
-  crime_df %>% 
-  filter(crm_1000 < 200) %>%
-  select(-pop, -id, -cty, -state)
-```
 
 First examine the marginal distributions of each variable.
 
@@ -93,5 +83,26 @@ for (i in 1:length(plist)) {
 }
 
 wrap_plots(plist, ncol = 4)
+```
+
+Compare p-value of all variables
+
+```{r}
+compute_p_value = function(x) {
+  lm_data = lm(crm_1000 ~ x, data = crime_df)
+  if (is.factor(x)) {
+    return( lm_data %>% broom::tidy() %>% select(p.value) %>% .[2:4,1])
+  }
+  return(lm_data %>% broom::tidy() %>% select(p.value) %>% .[2,1])
+}
+
+labels_list <- c("pop18","pop65","docs","beds","hsgrad","bagrad","poverty","unemp","pcincome","totalinc","region_1","region_2", "region_3", "pop_density")
+
+p_values = crime_df %>%
+  select(-crm_1000) %>%
+  map_df(compute_p_value) %>%
+  mutate(Variables = labels_list) 
+
+p_values
 ```
 
