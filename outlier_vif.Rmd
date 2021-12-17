@@ -40,9 +40,9 @@ crime_df =
   mutate(
     region = factor(region),
     pop_density = pop / area,
-    beds_density = beds / pop,
-    docs_density = docs / pop,
-    crm_1000 = 1000 * crimes / pop
+    beds_density_1000 = beds / pop,
+    docs_density_1000 = docs / pop * 1000,
+    crm_1000 = 1000 * crimes / pop * 1000
   ) %>% 
   dplyr::select(-crimes, -id, -area, -pop, -beds, -docs) %>% 
   dplyr::select(crm_1000, everything()) %>%
@@ -52,13 +52,13 @@ crime_df =
 ## Candidate Models
 
 ```{r candidate_models}
-model_1 = lm(crm_1000 ~ totalinc + poverty + beds_density + beds_density + region + pop_density + docs_density*totalinc + docs_density*beds_density, data = crime_df)
+model_1 = lm(crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density + pop18*pop_density, data = crime_df)
 
 model_2 = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = crime_df)
+    totalinc + region + pop_density + beds_density_1000, data = crime_df)
 
 model_3 = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density + bagrad*poverty, data = crime_df)
+    totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density, data = crime_df)
 ```
 
 # Residuals
@@ -111,9 +111,9 @@ The observation #6 and #1, is beyond the Cook’s distance lines of 0.5 (> 1). T
 
 ```{r backward_adj}
 crime_df %>%
-  filter(row(crime_df) == 6 | row(crime_df) == 123)
+  filter(row(crime_df) == 6 | row(crime_df) == 215 )
 crime_after <- crime_df %>%
-  filter(row(crime_df) != 6 & row(crime_df) != 123)
+  filter(row(crime_df) != 6)
 ```
 
 ## Colinearility
@@ -140,13 +140,13 @@ Let's check if the model violates colienarity
 
 Calculate VIF w/o interaction terms
 ```{r}
-model_1_new = lm(crm_1000 ~ totalinc + poverty + beds_density + beds_density + region + pop_density, data = crime_after)
+model_1_new = lm(crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density, data = crime_after)
 
 model_2_new = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density, data = crime_after)
+    totalinc + region + pop_density + beds_density_1000, data = crime_after)
 
 model_3_new = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density, data = crime_after)
+    totalinc + region + pop_density + beds_density_1000, data = crime_after)
 
 check_collinearity(model_1_new)
 
@@ -160,20 +160,23 @@ There is no multicolinearity in our models
 ## Final models
 
 ```{r}
-model_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + docs_density*totalinc + docs_density*beds_density, data = crime_after)
+model_1 = lm(crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density + pop18*pop_density, data = crime_after)
 
-model_2 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = crime_after)
+model_2 = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density_1000, data = crime_after)
 
-model_3 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density + bagrad*poverty, data = crime_after)
+model_3 = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density, data = crime_after)
 
-model_1 %>% broom::tidy() %>% knitr::kable() 
-model_2 %>% broom::tidy() %>% knitr::kable()
-model_3 %>% broom::tidy() %>% knitr::kable()
+model_1 %>% broom::tidy()
+model_2 %>% broom::tidy()
+model_3 %>% broom::tidy()
 ```
 
 
+```{r}
+
+```
 
 
 

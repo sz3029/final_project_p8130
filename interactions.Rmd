@@ -1,0 +1,66 @@
+---
+title: "Interactions"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(MASS)
+library(ggplot2)
+library(GGally)
+library(leaps)
+library(interactions)
+library(performance) # vif
+library(tidyverse)
+
+library(patchwork)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+set.seed(1)
+```
+
+## Data
+```{r}
+crime_df = 
+  read_csv("cdi.csv") %>% 
+  mutate(
+    region = factor(region),
+    pop_density = pop / area,
+    beds_density_1000 = beds / pop,
+    docs_density_1000 = docs / pop * 1000,
+    crm_1000 = 1000 * crimes / pop * 1000
+  ) %>% 
+  dplyr::select(-crimes, -id, -area, -pop, -beds, -docs) %>% 
+  dplyr::select(crm_1000, everything()) %>%
+  drop_na()
+```
+
+
+## Interactions
+
+## Model 1
+```{r}
+fiti <- lm(crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density + pop18*pop_density, data = crime_df)
+summary(fiti)
+interact_plot(fiti, pred = pop18, modx = pop_density)
+```
+
+
+### Backward Model
+```{r cars}
+fiti <- lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
+    totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density, data = crime_df)
+summary(fiti)
+interact_plot(fiti, pred = bagrad, modx = pcincome)
+interact_plot(fiti, pred = bagrad, modx = pop_density)
+```
+
+
