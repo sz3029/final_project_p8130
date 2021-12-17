@@ -59,6 +59,14 @@ fit_no_inte = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density + 
 summary(fit_no_inte)
 ```
 
+```{r}
+fit_no = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + pcincome, data = crime_df)
+small = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density , data = crime_df)
+
+anova(small, fit_no)
+```
+
+
 Next using partial ANOVA to test whether large model is superior
 
 ### no pop_density
@@ -154,11 +162,14 @@ summary(fit_7)
 anova(fit_8, fit_no_inte)
 ```
 
-Reject H0, large model is superior.
+Fail to reject H0, large model is not superior, we should keep the smaller one.
 
 Thus, the fit model would be: `model_selective = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + docs_density + beds_density, data = crime_df)`
 
 or `model_selective0 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + hsgrad + beds_density = crime_df)`
+
+or `model_selective0 = lm(crm_1000 ~ docs_density + totalinc + poverty + region + pop_density + hsgrad + beds_density = crime_df)`
+
 
 ```{r}
 mod_1 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + beds_density + docs_density, data = crime_df)
@@ -173,7 +184,7 @@ anova(mod_2, mod_1)
 Fail to reject H0, large model is not superior, we should keep the smaller one.
 
 ```{r}
-mod_3 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density+ beds_density + hsgrad, data = crime_df)
+mod_3 = lm(crm_1000 ~ totalinc + poverty + region + pop_density+ beds_density + pop18 + hsgrad, data = crime_df)
 mod_4 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + beds_density, data = crime_df)
 
 
@@ -185,6 +196,14 @@ anova(mod_4, mod_3)
 Fail to reject H0, large model is not superior, we should keep the smaller one.
 
 Hence, the model should be: `lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + beds_density, data = crime_df)`
+
+## Information about selective model
+
+```{r}
+model_selective = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + beds_density, data = crime_df)
+summary(model_selective)
+```
+
 
 ## Potential Interaction
 
