@@ -29,8 +29,8 @@ crime_df =
   mutate(
     region = factor(region),
     pop_density = pop / area,
-    beds_density_1000 = beds / pop * 1000,
-    docs_density = docs / pop,
+    beds_density_1000 =1000 * beds / pop,
+    docs_density_1000 =1000 * docs / pop,
     crm_1000 = 1000 * crimes / pop
   ) %>% 
   dplyr::select(-crimes, -id,-area, -pop, -beds, -docs) %>% 
@@ -126,13 +126,13 @@ crime_df2 =
     region = factor(region),
     pop_density = pop / area,
     crm_1000 = 1000 * crimes / pop,
-    beds_density = beds / pop,
-    docs_density = docs / pop
+    beds_density_1000 = 1000 * beds / pop,
+    docs_density_1000 = 1000 * docs / pop
   ) %>% 
   dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -beds, -docs, -region) %>%
   dplyr::select(crm_1000, everything())
 # fit regression using all predictors
-mult.fit = lm(crm_1000 ~ ., data = crime_df2)
+mult.fit = lm(crm_1000 ~ ., data = crime_df)
 
 step(mult.fit, direction = 'backward')
 
@@ -173,7 +173,7 @@ summary(Model_backward)
 BIC(Model_backward)
 
 Model_forward =
-  lm(formula = crm_1000 ~ pop18 + pop65 + hsgrad + bagrad + poverty + unemp + pcincome + totalinc + region + pop_density + beds_density_1000 + docs_density, data = crime_df)
+  lm(formula = crm_1000 ~ pop18 + pop65 + hsgrad + bagrad + poverty + unemp + pcincome + totalinc + region + pop_density + beds_density_1000 + docs_density_1000, data = crime_df)
 BIC(Model_forward)
 summary(Model_forward)
 
@@ -183,12 +183,12 @@ summary(Model_stepwise)
 BIC(Model_stepwise)
 
 cp1 = 
-  lm(formula = crm_1000 ~ pop18 + hsgrad + poverty + unemp + totalinc + pop_density + docs_density, data = crime_df2)
+  lm(formula = crm_1000 ~ pop18 + hsgrad + poverty + unemp + totalinc + pop_density + docs_density_1000, data = crime_df2)
 BIC(cp1)
 summary(cp1)
 
 cp2 = 
-  lm(formula = crm_1000 ~ pop65 + hsgrad + poverty + unemp + totalinc + pop_density + docs_density, data = crime_df2)
+  lm(formula = crm_1000 ~ pop65 + hsgrad + poverty + unemp + totalinc + pop_density + docs_density_1000, data = crime_df2)
 BIC(cp2)
 summary(cp2)
 ```
@@ -196,13 +196,13 @@ summary(cp2)
 ### select based on marginal distribution
 ```{r}
 #linear regression model with full predictors
-fit_no_inte = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density_1000 + docs_density + region + pop_density, data = crime_df)
+fit_no_inte = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density_1000 + docs_density_1000 + region + pop_density, data = crime_df)
 summary(fit_no_inte)
 ```
 
 ```{r}
-fit_no = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density_1000 + docs_density + region + pop_density + pcincome, data = crime_df)
-small = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density_1000 + docs_density + region + pop_density , data = crime_df)
+fit_no = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density_1000 + docs_density_1000 + region + pop_density + pcincome, data = crime_df)
+small = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density_1000 + docs_density_1000 + region + pop_density , data = crime_df)
 
 anova(small, fit_no)
 ```
@@ -211,7 +211,7 @@ Next using partial ANOVA to test whether large model is superior
 
 no pop_density
 ```{r}
-fit_1 = lm(crm_1000 ~ pop18 + totalinc + poverty + hsgrad + beds_density_1000 + docs_density + region, data = crime_df)
+fit_1 = lm(crm_1000 ~ pop18 + totalinc + poverty + hsgrad + beds_density_1000 + docs_density_1000 + region, data = crime_df)
 summary(fit_1)
 # compare nested (small vs large) models
 # Ho: smaller model is defensible
@@ -223,7 +223,7 @@ Reject H0, large model is superior
 ### no region
 
 ```{r}
-fit_2 = lm(crm_1000 ~ pop18 + totalinc + poverty + hsgrad + beds_density_1000 + docs_density + pop_density, data = crime_df)
+fit_2 = lm(crm_1000 ~ pop18 + totalinc + poverty + hsgrad + beds_density_1000 + docs_density_1000 + pop_density, data = crime_df)
 summary(fit_2)
 # compare nested (small vs large) models
 # Ho: smaller model is defensible
@@ -233,7 +233,7 @@ anova(fit_2, fit_no_inte)
 Reject H0, large model is superior
 
 
-no docs_density
+no docs_density_1000
 ```{r}
 fit_3 = lm(crm_1000 ~  pop18 + totalinc + poverty + hsgrad + beds_density_1000 + region + pop_density, data = crime_df)
 summary(fit_3)
@@ -246,7 +246,7 @@ Fail to reject H0, large model is not superior, we should keep the smaller one.
 
 no beds_density
 ```{r}
-fit_4 = lm(crm_1000 ~ pop18 + totalinc + poverty + hsgrad + region + pop_density + docs_density, data = crime_df)
+fit_4 = lm(crm_1000 ~ pop18 + totalinc + poverty + hsgrad + region + pop_density + docs_density_1000, data = crime_df)
 summary(fit_4)
 # compare nested (small vs large) models
 # Ho: smaller model is defensible
@@ -257,7 +257,7 @@ Reject H0, large model is superior
 
 no hsgrad
 ```{r}
-fit_5 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + docs_density + beds_density_1000, data = crime_df)
+fit_5 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + docs_density_1000 + beds_density_1000, data = crime_df)
 summary(fit_5)
 # compare nested (small vs large) models
 # Ho: smaller model is defensible
@@ -268,7 +268,7 @@ Fail to reject H0, large model is not superior, we should keep the smaller one.
 
 no poverty
 ```{r}
-fit_6 = lm(crm_1000 ~ pop18 + totalinc + region + pop_density + docs_density + beds_density_1000 + hsgrad, data = crime_df)
+fit_6 = lm(crm_1000 ~ pop18 + totalinc + region + pop_density + docs_density_1000 + beds_density_1000 + hsgrad, data = crime_df)
 summary(fit_6)
 # compare nested (small vs large) models
 # Ho: smaller model is defensible
@@ -279,7 +279,7 @@ Reject H0, large model is superior
 
 no totalinc
 ```{r}
-fit_7 = lm(crm_1000 ~ pop18 + poverty + hsgrad + beds_density_1000 + docs_density + region + pop_density, data = crime_df)
+fit_7 = lm(crm_1000 ~ pop18 + poverty + hsgrad + beds_density_1000 + docs_density_1000 + region + pop_density, data = crime_df)
 summary(fit_7)
 # compare nested (small vs large) models
 # Ho: smaller model is defensible
@@ -290,7 +290,7 @@ Reject H0, large model is superior.
 
 no pop18
 ```{r}
-fit_8 = lm(crm_1000 ~ poverty + hsgrad + beds_density_1000 + docs_density + region + pop_density + totalinc, data = crime_df)
+fit_8 = lm(crm_1000 ~ poverty + hsgrad + beds_density_1000 + docs_density_1000 + region + pop_density + totalinc, data = crime_df)
 summary(fit_7)
 # compare nested (small vs large) models
 # Ho: smaller model is defensible
