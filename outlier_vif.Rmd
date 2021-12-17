@@ -52,7 +52,7 @@ crime_df =
 ## Candidate Models
 
 ```{r candidate_models}
-model_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + bagrad*poverty, data = crime_df)
+model_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + docs_density*totalinc + docs_density*beds_density, data = crime_df)
 
 model_2 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
     totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = crime_df)
@@ -111,7 +111,7 @@ The observation #6 and #1, is beyond the Cook’s distance lines of 0.5 (> 1). T
 
 ```{r backward_adj}
 crime_df %>%
-  filter(row(crime_df) == 6 | row(crime_df) == 123| row(crime_df) == 215)
+  filter(row(crime_df) == 6 | row(crime_df) == 123)
 crime_after <- crime_df %>%
   filter(row(crime_df) != 6 & row(crime_df) != 123)
 ```
@@ -160,7 +160,7 @@ There is no multicolinearity in our models
 ## Final models
 
 ```{r}
-model_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + bagrad*poverty, data = crime_after)
+model_1 = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + docs_density*totalinc + docs_density*beds_density, data = crime_after)
 
 model_2 = lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
     totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = crime_after)
