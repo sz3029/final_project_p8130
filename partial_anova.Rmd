@@ -32,8 +32,13 @@ crime_df =
   mutate(
     region = factor(region),
     pop_density = pop / area,
+<<<<<<< HEAD
+    beds_density = 1000 * beds / pop,
+    docs_density = 1000 * docs / pop,
+=======
     beds_density_1000 = beds / pop * 1000,
     docs_density = docs / pop,
+>>>>>>> 37bdbec96ea418db7fbfd71aceeb371a59b7dcc4
     crm_1000 = 1000 * crimes / pop
   ) %>% 
   dplyr::select(-crimes, -id, -area, -pop, -beds, -docs) %>% 
@@ -57,13 +62,6 @@ crime_state[order(-rank(crime_state$crime_rate)),] %>%
 #linear regression model with full predictors
 fit_no_inte = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density, data = crime_df)
 summary(fit_no_inte)
-```
-
-```{r}
-fit_no = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + pcincome, data = crime_df)
-small = lm(crm_1000 ~ pop18 +totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density , data = crime_df)
-
-anova(small, fit_no)
 ```
 
 
