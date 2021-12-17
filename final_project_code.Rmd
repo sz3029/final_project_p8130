@@ -484,8 +484,7 @@ model_1 = lm(crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region +
 model_2 = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
     totalinc + region + pop_density + beds_density_1000, data = crime_after)
 
-model_3 = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density, data = crime_after)
+model_3 = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density, data = crime_after)
 
 model_1 %>% broom::tidy()
 model_2 %>% broom::tidy()
@@ -494,6 +493,10 @@ model_3 %>% broom::tidy()
 
 ## Cross validation
 ```{r}
+crime_df = crime_df %>% 
+  filter(crm_1000 < 200)
+
+#create RMSE distribution boxplot
 set.seed(7)
 
 cv_df =
@@ -505,7 +508,7 @@ cv_df =
   mutate(
     model_1 = map(train, ~lm(crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density + pop18*pop_density, data = .x)),
     model_2 = map(train, ~lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000, data = .x)),
-    model_3 = map(train, ~lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density, data = .x))
+    model_3 = map(train, ~lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density, data = .x))
   ) %>% 
   mutate(
     rmse_1 = map2_dbl(model_1, test, ~rmse(model = .x, data = .y)),
@@ -534,10 +537,10 @@ cv_df %>%
 ```{r}
 set.seed(2021)
 
-# Use 5-fold validation and create the training sets
+# Use caret package for 5-fold validation
 train = trainControl(method = "repeatedcv", number = 5, repeats = 100)
 
-# Fit the 4-variables model that we discussed in previous lectures
+
 model_caret_1 = 
   train(
     crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density + pop18*pop_density,
@@ -558,7 +561,7 @@ model_caret_2 =
 
 model_caret_3 = 
   train(
-    crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density,
+    crm_1000 ~ pop18 + bagrad + poverty + pcincome + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density,
     data = crime_df,
     trControl = train,
     method = 'lm',
