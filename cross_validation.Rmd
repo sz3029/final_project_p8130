@@ -1,0 +1,131 @@
+---
+title: "Cross Validation"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(modelr)
+library(caret)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+Use cross validation to compare the RMSEs of three models:
+
+```{r, message = FALSE, include=FALSE}
+#Load data
+crime_df = 
+  read_csv("cdi.csv") %>% 
+  #filter(id != 6) %>% 
+  mutate(
+    region = factor(region),
+    pop_density = pop / area,
+    crm_1000 = 1000 * crimes / pop,
+    beds_density_1000 = 1000 * beds / pop,
+    docs_density_1000 = 1000 * docs / pop
+  ) %>% 
+  dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -docs, -beds) %>% 
+  dplyr::select(-crm_1000, crm_1000)
+
+
+set.seed(7)
+
+cv_df =
+  crossv_mc(crime_df, 100) %>% 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble)
+  ) %>% 
+  mutate(
+    model_1 = map(train, ~lm(crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density + pop18*pop_density, data = .x)),
+    model_2 = map(train, ~lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000, data = .x)),
+    model_3 = map(train, ~lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density, data = .x))
+  ) %>% 
+  mutate(
+    rmse_1 = map2_dbl(model_1, test, ~rmse(model = .x, data = .y)),
+    rmse_2 = map2_dbl(model_2, test, ~rmse(model = .x, data = .y)),
+    rmse_3 = map2_dbl(model_3, test, ~rmse(model = .x, data = .y))
+  )
+  
+cv_df
+
+cv_df %>% 
+  dplyr::select(rmse_1:rmse_3) %>% 
+  pivot_longer(
+    rmse_1:rmse_3,
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) %>% 
+  ggplot(aes(x = model, y = rmse)) +
+  geom_boxplot() +
+  labs(
+    x = "Model",
+    y = "RMSE"
+  )
+
+```
+
+
+```{r}
+set.seed(2021)
+
+# Use 5-fold validation and create the training sets
+train = trainControl(method = "repeatedcv", number = 5, repeats = 100)
+
+# Fit the 4-variables model that we discussed in previous lectures
+model_caret_1 = 
+  train(
+    crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density + pop18*pop_density,
+    data = crime_df,
+    trControl = train,
+    method = 'lm',
+    na.action = na.pass
+  )
+
+model_caret_2 = 
+  train(
+    crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000,
+    data = crime_df,
+    trControl = train,
+    method = 'lm',
+    na.action = na.pass
+  )
+
+model_caret_3 = 
+  train(
+    crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density,
+    data = crime_df,
+    trControl = train,
+    method = 'lm',
+    na.action = na.pass
+  )
+
+bind_rows(
+  as_tibble(model_caret_1$results),
+  as_tibble(model_caret_2$results),
+  as_tibble(model_caret_3$results),
+) %>% 
+  knitr::kable(digit = 3)
+```
+
+
