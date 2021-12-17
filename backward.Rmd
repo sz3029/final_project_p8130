@@ -26,8 +26,8 @@ crime_df =
     region = factor(region),
     pop_density = pop / area,
     crm_1000 = 1000 * crimes / pop,
-    beds_density = beds / pop,
-    docs_density = docs / pop
+    beds_density = 1000 * beds / pop,
+    docs_density = 1000 * docs / pop
   ) %>% 
   dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -beds, -docs) %>% 
   dplyr::select(crm_1000, everything()) 

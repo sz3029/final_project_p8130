@@ -265,8 +265,8 @@ crime_df =
     region = factor(region),
     pop_density = pop / area,
     crm_1000 = 1000 * crimes / pop,
-    beds_density = beds / pop,
-    docs_density = docs / pop
+    beds_density = 1000 * beds / pop,
+    docs_density = 1000 * docs / pop
   ) %&gt;% 
   dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -beds, -docs) %&gt;% 
   dplyr::select(crm_1000, everything()) 
@@ -356,7 +356,7 @@ step(mult.fit, direction = &#39;backward&#39;)</code></pre>
 ##     pcincome      totalinc       region2       region3       region4  
 ##    1.102e-03     1.996e-04     9.145e+00     2.710e+01     2.127e+01  
 ##  pop_density  beds_density  
-##    4.941e-03     2.484e+03</code></pre>
+##    4.941e-03     2.484e+00</code></pre>
 <pre class="r"><code>step(mult.fit, direction = &#39;forward&#39;)</code></pre>
 <pre><code>## Start:  AIC=2553.48
 ## crm_1000 ~ pop18 + pop65 + hsgrad + bagrad + poverty + unemp + 
@@ -374,7 +374,7 @@ step(mult.fit, direction = &#39;backward&#39;)</code></pre>
 ##      poverty         unemp      pcincome      totalinc       region2  
 ##    1.879e+00     6.015e-01     1.029e-03     2.072e-04     9.098e+00  
 ##      region3       region4   pop_density  beds_density  docs_density  
-##    2.785e+01     2.160e+01     5.006e-03     3.138e+03    -6.554e+02</code></pre>
+##    2.785e+01     2.160e+01     5.006e-03     3.138e+00    -6.554e-01</code></pre>
 <pre class="r"><code>step(mult.fit, direction = &#39;both&#39;)</code></pre>
 <pre><code>## Start:  AIC=2553.48
 ## crm_1000 ~ pop18 + pop65 + hsgrad + bagrad + poverty + unemp + 
@@ -463,7 +463,7 @@ step(mult.fit, direction = &#39;backward&#39;)</code></pre>
 ##     pcincome      totalinc       region2       region3       region4  
 ##    1.102e-03     1.996e-04     9.145e+00     2.710e+01     2.127e+01  
 ##  pop_density  beds_density  
-##    4.941e-03     2.484e+03</code></pre>
+##    4.941e-03     2.484e+00</code></pre>
 </div>
 <div id="test-based-procedures" class="section level2">
 <h2>Test Based Procedures</h2>
@@ -595,7 +595,7 @@ summary(Model_backward)</code></pre>
 ## region3       2.710e+01  2.533e+00  10.699  &lt; 2e-16 ***
 ## region4       2.127e+01  3.080e+00   6.906 1.81e-11 ***
 ## pop_density   4.941e-03  4.494e-04  10.995  &lt; 2e-16 ***
-## beds_density  2.484e+03  5.042e+02   4.926 1.20e-06 ***
+## beds_density  2.484e+00  5.042e-01   4.926 1.20e-06 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -634,8 +634,8 @@ BIC(Model_forward)</code></pre>
 ## region3       2.785e+01  2.673e+00  10.419  &lt; 2e-16 ***
 ## region4       2.160e+01  3.140e+00   6.879 2.16e-11 ***
 ## pop_density   5.006e-03  4.536e-04  11.037  &lt; 2e-16 ***
-## beds_density  3.138e+03  7.988e+02   3.928  0.00010 ***
-## docs_density -6.554e+02  1.025e+03  -0.639  0.52298    
+## beds_density  3.138e+00  7.988e-01   3.928  0.00010 ***
+## docs_density -6.554e-01  1.025e+00  -0.639  0.52298    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
@@ -667,7 +667,7 @@ summary(Model_stepwise)</code></pre>
 ## region3       2.710e+01  2.533e+00  10.699  &lt; 2e-16 ***
 ## region4       2.127e+01  3.080e+00   6.906 1.81e-11 ***
 ## pop_density   4.941e-03  4.494e-04  10.995  &lt; 2e-16 ***
-## beds_density  2.484e+03  5.042e+02   4.926 1.20e-06 ***
+## beds_density  2.484e+00  5.042e-01   4.926 1.20e-06 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
