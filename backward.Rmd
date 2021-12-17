@@ -21,16 +21,16 @@ library(leaps)
 ```{r}
 # read data 
 crime_df = 
-  read_csv("cdi.csv") %>% 
+  read_csv("./cdi.csv") %>% 
   mutate(
     region = factor(region),
     pop_density = pop / area,
     crm_1000 = 1000 * crimes / pop,
-    beds_density = beds / pop,
-    docs_density = docs / pop
+    beds_density = 1000 * beds / pop,
+    docs_density = 1000 * docs / pop
   ) %>% 
   dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -beds, -docs) %>% 
-  dplyr::select(crm_1000, everything())
+  dplyr::select(crm_1000, everything()) 
 
 # fit regression using all predictors
 mult.fit = lm(crm_1000 ~ ., data = crime_df)
@@ -82,25 +82,28 @@ plot(2:9, rs$adjr2, xlab="No of parameters", ylab="Adj R2")
 
 ```{r}
 Model_backward =
-  lm(formula = crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density, data = crime_df)
+lm(formula = crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density, data = crime_df)
 summary(Model_backward)
+BIC(Model_backward)
 
 Model_forward =
   lm(formula = crm_1000 ~ pop18 + pop65 + hsgrad + bagrad + poverty + unemp + pcincome + totalinc + region + pop_density + beds_density + docs_density, data = crime_df)
+BIC(Model_forward)
 summary(Model_forward)
 
 Model_stepwise = 
   lm(formula = crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density, data = crime_df)
 summary(Model_stepwise)
+BIC(Model_stepwise)
 
 cp1 = 
   lm(formula = crm_1000 ~ pop18 + hsgrad + poverty + unemp + totalinc + pop_density + docs_density, data = crime_df2)
-AIC(cp1)
+BIC(cp1)
 summary(cp1)
 
 cp2 = 
   lm(formula = crm_1000 ~ pop65 + hsgrad + poverty + unemp + totalinc + pop_density + docs_density, data = crime_df2)
-AIC(cp2)
+BIC(cp2)
 summary(cp2)
 ```
 
