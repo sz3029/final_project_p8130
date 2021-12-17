@@ -29,26 +29,25 @@ scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 
-
 Use cross validation to compare the RMSEs of three models:
 
 ```{r, message = FALSE, include=FALSE}
 #Load data
 crime_df = 
   read_csv("cdi.csv") %>% 
-  filter(id != 1, id != 6, id != 123) %>% 
+  #filter(id != 6) %>% 
   mutate(
     region = factor(region),
     pop_density = pop / area,
     crm_1000 = 1000 * crimes / pop,
-    beds_density = beds / pop,
-    docs_density = docs / pop
+    beds_density_1000 = 1000 * beds / pop,
+    docs_density_1000 = 1000 * docs / pop
   ) %>% 
   dplyr::select(-crimes, -id, -area, -pop, -cty, -state, -docs, -beds) %>% 
   dplyr::select(-crm_1000, crm_1000)
 
 
-set.seed(2020)
+set.seed(7)
 
 cv_df =
   crossv_mc(crime_df, 100) %>% 
@@ -57,9 +56,9 @@ cv_df =
     test = map(test, as_tibble)
   ) %>% 
   mutate(
-    model_1 = map(train, ~lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + docs_density*totalinc + docs_density*beds_density, data = .x)),
-    model_2 = map(train, ~lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region, data = .x)),
-    model_3 = map(train, ~lm(crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density + bagrad*poverty, data = .x))
+    model_1 = map(train, ~lm(crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density + pop18*pop_density, data = .x)),
+    model_2 = map(train, ~lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000, data = .x)),
+    model_3 = map(train, ~lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density, data = .x))
   ) %>% 
   mutate(
     rmse_1 = map2_dbl(model_1, test, ~rmse(model = .x, data = .y)),
@@ -78,13 +77,17 @@ cv_df %>%
     names_prefix = "rmse_"
   ) %>% 
   ggplot(aes(x = model, y = rmse)) +
-  geom_boxplot()
+  geom_boxplot() +
+  labs(
+    x = "Model",
+    y = "RMSE"
+  )
 
 ```
 
 
 ```{r}
-set.seed(2022)
+set.seed(2021)
 
 # Use 5-fold validation and create the training sets
 train = trainControl(method = "repeatedcv", number = 5, repeats = 100)
@@ -92,7 +95,7 @@ train = trainControl(method = "repeatedcv", number = 5, repeats = 100)
 # Fit the 4-variables model that we discussed in previous lectures
 model_caret_1 = 
   train(
-    crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density + docs_density*totalinc + docs_density*beds_density,
+    crm_1000 ~ pop18 +totalinc + poverty + beds_density_1000 + region + pop_density + pop18*pop_density,
     data = crime_df,
     trControl = train,
     method = 'lm',
@@ -101,7 +104,7 @@ model_caret_1 =
 
 model_caret_2 = 
   train(
-    crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density + bagrad*poverty + poverty*region,
+    crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000,
     data = crime_df,
     trControl = train,
     method = 'lm',
@@ -110,7 +113,7 @@ model_caret_2 =
 
 model_caret_3 = 
   train(
-    crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density + bagrad*poverty,
+    crm_1000 ~ pop18 + bagrad + poverty + pcincome + totalinc + region + pop_density + beds_density_1000 + bagrad*pcincome + bagrad*pop_density,
     data = crime_df,
     trControl = train,
     method = 'lm',
@@ -123,21 +126,6 @@ bind_rows(
   as_tibble(model_caret_3$results),
 ) %>% 
   knitr::kable(digit = 3)
-
-
-model_backward =lm(formula = crm_1000 ~ pop18 + hsgrad + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density, data = crime_df)
-summary(model_backward)
-
-model_3 = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density + bagrad*poverty, data = crime_df)
-summary(model_3)
-
-model_4 = lm(crm_1000 ~ pop18 + bagrad + poverty + pcincome + 
-    totalinc + region + pop_density + beds_density + bagrad*poverty + hsgrad, data = crime_df)
-summary(model_4)
-
-anova(model_3, model_4)
 ```
 
 
