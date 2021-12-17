@@ -32,8 +32,8 @@ crime_df =
   mutate(
     region = factor(region),
     pop_density = pop / area,
-    beds_density = beds / area,
-    docs_density = docs / area,
+    beds_density = beds / pop,
+    docs_density = docs / pop,
     crm_1000 = 1000 * crimes / pop
   ) %>% 
   dplyr::select(-crimes, -id, -area, -pop, -beds, -docs) %>% 
@@ -95,7 +95,7 @@ summary(fit_3)
 anova(fit_3, fit_no_inte)
 ```
 
-Reject H0, large model is superior
+Fail to reject H0, large model is not superior, we should keep the smaller one.
 
 ### no beds_density
 
@@ -119,7 +119,7 @@ summary(fit_5)
 anova(fit_5, fit_no_inte)
 ```
 
-Reject H0, large model is superior
+Fail to reject H0, large model is not superior, we should keep the smaller one.
 
 
 ### no poverty
@@ -154,10 +154,37 @@ summary(fit_7)
 anova(fit_8, fit_no_inte)
 ```
 
-Fail to reject H0, so we keep the small model.
+Reject H0, large model is superior.
 
-Thus, the fit model would be: `model_selective = lm(crm_1000 ~ totalinc + poverty + hsgrad + beds_density + docs_density + region + pop_density, data = crime_df)`
+Thus, the fit model would be: `model_selective = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + docs_density + beds_density, data = crime_df)`
 
+or `model_selective0 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + hsgrad + beds_density = crime_df)`
+
+```{r}
+mod_1 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + beds_density + docs_density, data = crime_df)
+mod_2 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + beds_density, data = crime_df)
+
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(mod_2, mod_1)
+```
+
+Fail to reject H0, large model is not superior, we should keep the smaller one.
+
+```{r}
+mod_3 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density+ beds_density + hsgrad, data = crime_df)
+mod_4 = lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + beds_density, data = crime_df)
+
+
+# compare nested (small vs large) models
+# Ho: smaller model is defensible
+anova(mod_4, mod_3)
+```
+
+Fail to reject H0, large model is not superior, we should keep the smaller one.
+
+Hence, the model should be: `lm(crm_1000 ~ pop18 + totalinc + poverty + region + pop_density + beds_density, data = crime_df)`
 
 ## Potential Interaction
 
